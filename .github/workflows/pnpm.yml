@@ -1,0 +1,36 @@
+name: Blog Build
+
+on:
+  push:
+    # main 分支有 push 时触发
+    branches: [main]
+
+jobs:
+  deploy:
+    # 指定虚拟机环境
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7.2.1
+      - name: Install modules
+        run: pnpm install
+      - name: Build
+        run: pnpm build
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          mkdir -p /tmp/publish
+          cp -R public/* /tmp/publish
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git checkout publish || git checkout --orphan publish
+          git rm -rf .
+          cp -R /tmp/publish/* .
+          touch .nojekyll
+          git add .
+          git commit -m "Publish"
+          git push origin publish
